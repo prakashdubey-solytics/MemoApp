@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: flask-apps
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - hpa.yaml
+
+replicas:
+  - name: flask-crud-app
+    count: 3
+
+images:
+  - name: ghcr.io/your-org/flask-app
+    newTag: latest
+
+namePrefix: flask-
+
+commonLabels:
+  app.kubernetes.io/name: flask-crud-app
+  app.kubernetes.io/version: v1
+
+commonAnnotations:
+  managed-by: "kustomize"

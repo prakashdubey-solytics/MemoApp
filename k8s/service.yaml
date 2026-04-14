@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-crud-app
+  namespace: default
+  labels:
+    app: flask-crud-app
+spec:
+  type: ClusterIP
+  selector:
+    app: flask-crud-app
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 5000
+  sessionAffinity: None

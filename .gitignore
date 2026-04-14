@@ -57,12 +57,9 @@ htmlcov/
 
 # Docker
 .docker/
-.dockerignore
 
 # Kubernetes
-*.yml
-*.yaml
-!k8s/
+# Don't ignore k8s manifest files - they should be committed
 
 # OS
 .DS_Store
