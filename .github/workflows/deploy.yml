@@ -1,13 +1,18 @@
 name: Build and Deploy
 
+
 on:
   push:
     branches:
       - main
       - develop
+      - dev
   pull_request:
     branches:
       - main
+      - dev
+  repository_dispatch:
+    types: [deploy_trigger]
 
 env:
   REGISTRY: ghcr.io
@@ -92,11 +97,13 @@ jobs:
   deploy:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/develop')) || github.event_name == 'repository_dispatch'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.ref || github.ref }}
 
       - name: Deploy to Kubernetes (Example)
         run: |
