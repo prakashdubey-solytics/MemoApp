@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
-from github_trigger import trigger_deployment
 
 app = Flask(__name__)
 
@@ -143,35 +142,6 @@ def run_test():
         })
     except Exception as e:
         return jsonify({"status": "failed", "error": str(e)}), 500
-
-@app.route("/api/trigger-deploy", methods=["POST"])
-def trigger_deploy():
-    """
-    Trigger GitHub Action deployment via repository_dispatch.
-    
-    Expected JSON payload:
-    {
-        "test_case": "unit_tests",  // optional
-        "status": "passed",          // optional
-        "token": "ghp_xxxx..."       // optional (uses GITHUB_TOKEN env var if not provided)
-    }
-    """
-    data = request.get_json() or {}
-    
-    test_case = data.get("test_case", "manual_trigger")
-    status = data.get("status", "initiated")
-    token = data.get("token")
-    
-    # If token provided, set it as env var temporarily
-    if token:
-        os.environ["GITHUB_TOKEN"] = token
-    
-    result = trigger_deployment(test_case=test_case, status=status)
-    
-    if result.get("success"):
-        return jsonify(result), 200
-    else:
-        return jsonify(result), 400
 
 if __name__ == "__main__":
     app.run(debug=True)
