@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, jsonify
+from flask import Flask, render_template, request, redirect, jsonify, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///posts.db'
@@ -53,12 +54,13 @@ def create_post():
     body = request.form.get("body", "").strip()
 
     if not title or not body:
-        return redirect("/?error=Title and body are required")
+        flash('Title and body are required.', 'error')
+        return redirect("/")
 
     post = Post(title=title, body=body)
     db.session.add(post)
     db.session.commit()
-
+    flash('Post created successfully!', 'success')
     return redirect("/")
 
 @app.route("/edit/<int:post_id>", methods=["GET", "POST"])
@@ -70,12 +72,13 @@ def edit_post(post_id):
         body = request.form.get("body", "").strip()
 
         if not title or not body:
-            return render_template("edit.html", post=post, error="Title and body are required")
+            flash('Title and body are required.', 'error')
+            return render_template("edit.html", post=post)
 
         post.title = title
         post.body = body
         db.session.commit()
-
+        flash('Post updated successfully!', 'success')
         return redirect("/")
 
     return render_template("edit.html", post=post)
@@ -85,6 +88,7 @@ def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
     db.session.delete(post)
     db.session.commit()
+    flash('Post deleted successfully!', 'success')
     return redirect("/")
 
 @app.route("/api/posts", methods=["GET"])
