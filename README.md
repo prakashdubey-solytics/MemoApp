@@ -1,6 +1,4 @@
-# Flask CRUD Application
-
-A modern, production-ready Flask application with complete CRUD operations, local SQLite database, and Kubernetes deployment support.
+# Flask CRUD 
 
 ## Features
 
