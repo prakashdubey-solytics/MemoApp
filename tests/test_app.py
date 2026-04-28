@@ -21,16 +21,13 @@ def create_post(page: Page, base_url: str, title: str, body: str) -> None:
     page.fill("#body", body)
     page.get_by_role("button", name="Create Post").click()
 
-
 def wait_for_toast(page: Page, text: str) -> None:
     """Assert a toast containing *text* becomes visible."""
     toast = page.locator(".toast", has_text=text)
     expect(toast).to_be_visible(timeout=4000)
 
-
 def unique_text(prefix: str) -> str:
     return f"{prefix} {uuid4().hex[:8]}"
-
 
 # ---------------------------------------------------------------------------
 # Home page
@@ -46,7 +43,6 @@ class TestHomePage:
         expect(page.locator("#title")).to_be_visible()
         expect(page.locator("#body")).to_be_visible()
         expect(page.get_by_role("button", name="Create Post")).to_be_visible()
-
 
 # ---------------------------------------------------------------------------
 # Create post
@@ -66,18 +62,27 @@ class TestCreatePost:
     def test_create_post_empty_title_shows_error_toast(self, page: Page, base_url: str):
         page.goto(base_url)
         # Use whitespace to bypass browser required validation and hit server-side strip().
-        page.fill("#title", "   ")
+        page.fill("#title", "   " )
         page.fill("#body", "Body without title")
         page.get_by_role("button", name="Create Post").click()
         wait_for_toast(page, "required")
 
     def test_create_post_empty_body_shows_error_toast(self, page: Page, base_url: str):
         page.goto(base_url)
-        page.fill("#body", "   ")
+        page.fill("#body", "   " )
         page.fill("#title", "Title without body")
         page.get_by_role("button", name="Create Post").click()
         wait_for_toast(page, "required")
 
+    def test_create_post_title_max_100_chars(self, page: Page, base_url: str):
+        # TestCreatePost::test_create_post_title_max_100_chars
+        title = "A" * 101
+        page.goto(base_url)
+        page.fill("#title", title)
+        page.fill("#body", "Body")
+        page.get_by_role("button", name="Create Post").click()
+        # Assuming the app shows an error toast or prevents submission
+        wait_for_toast(page, "title")
 
 # ---------------------------------------------------------------------------
 # Edit post
@@ -121,8 +126,8 @@ class TestEditPost:
         card = page.locator(".post-card", has_text=title).first
         expect(card).to_be_visible()
         card.get_by_role("link", name="Edit").click()
-        page.fill("#title", "   ")
-        page.fill("#body", "   ")
+        page.fill("#title", "   " )
+        page.fill("#body", "   " )
         page.get_by_role("button", name="Save Changes").click()
 
         wait_for_toast(page, "required")
@@ -139,6 +144,18 @@ class TestEditPost:
         expect(page.locator("#title")).to_have_value(title)
         expect(page.locator("#body")).to_have_value(body)
 
+    def test_edit_post_enforces_validation(self, page: Page, base_url: str):
+        # TestEditPost::test_edit_post_enforces_validation
+        title = unique_text("Edit Validation")
+        create_post(page, base_url, title, "Body")
+        page.goto(base_url)
+        card = page.locator(".post-card", has_text=title).first
+        expect(card).to_be_visible()
+        card.get_by_role("link", name="Edit").click()
+        page.fill("#title", "   " )
+        page.fill("#body", "   " )
+        page.get_by_role("button", name="Save Changes").click()
+        wait_for_toast(page, "required")
 
 # ---------------------------------------------------------------------------
 # Delete post
@@ -171,6 +188,29 @@ class TestDeletePost:
 
         expect(page.locator(".post-card", has_text=title)).to_have_count(0)
 
+    def test_delete_post_removes_from_persistence(self, page: Page, base_url: str):
+        # TestDeletePost::test_delete_post_removes_from_persistence
+        title = unique_text("Persistent Delete")
+        create_post(page, base_url, title, "Body")
+        page.goto(base_url)
+        page.on("dialog", lambda d: d.accept())
+        card = page.locator(".post-card", has_text=title).first
+        expect(card).to_be_visible()
+        card.get_by_role("button", name="Delete").click()
+        page.reload()
+        expect(page.locator(".post-card", has_text=title)).to_have_count(0)
+
+# ---------------------------------------------------------------------------
+# Persistence
+# ---------------------------------------------------------------------------
+
+class TestPersistence:
+    def test_memos_survive_reload(self, page: Page, base_url: str):
+        # TestPersistence::test_memos_survive_reload
+        title = unique_text("Persistent Memo")
+        create_post(page, base_url, title, "Body")
+        page.reload()
+        expect(page.locator(".post-card", has_text=title).first).to_be_visible()
 
 # ---------------------------------------------------------------------------
 # Search
@@ -198,6 +238,39 @@ class TestSearch:
 
         expect(page.locator(".empty-state")).to_be_visible()
 
+    def test_search_filter_memos_by_title(self, page: Page, base_url: str):
+        # TestSearch::test_search_filter_memos_by_title
+        title1 = unique_text("Alpha Memo")
+        title2 = unique_text("Beta Memo")
+        create_post(page, base_url, title1, "Alpha")
+        create_post(page, base_url, title2, "Beta")
+        page.goto(base_url)
+        page.fill("input[name='search']", title1)
+        page.keyboard.press("Enter")
+        expect(page.locator(".post-card", has_text=title1).first).to_be_visible()
+        expect(page.locator(".post-card", has_text=title2)).to_have_count(0)
+
+# ---------------------------------------------------------------------------
+# List sorting
+# ---------------------------------------------------------------------------
+
+class TestListSorting:
+    def test_list_sorting_newest_edited_first(self, page: Page, base_url: str):
+        # TestListSorting::test_list_sorting_newest_edited_first
+        title1 = unique_text("First Memo")
+        title2 = unique_text("Second Memo")
+        create_post(page, base_url, title1, "Body1")
+        create_post(page, base_url, title2, "Body2")
+        page.goto(base_url)
+        # Edit the first post to update its timestamp
+        card = page.locator(".post-card", has_text=title1).first
+        card.get_by_role("link", name="Edit").click()
+        page.fill("#body", "Updated Body")
+        page.get_by_role("button", name="Save Changes").click()
+        page.goto(base_url)
+        # The edited post should now appear first
+        cards = page.locator(".post-card")
+        expect(cards.nth(0)).to_have_text(title1)
 
 # ---------------------------------------------------------------------------
 # Toast behaviour
