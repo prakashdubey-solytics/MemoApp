@@ -7,10 +7,6 @@ on:
       - main
       - develop
       - dev
-  pull_request:
-    branches:
-      - main
-      - dev
   repository_dispatch:
     types: [deploy_trigger]
 

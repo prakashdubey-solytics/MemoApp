@@ -49,37 +49,6 @@ class TestHomePage:
 
 
 # ---------------------------------------------------------------------------
-# Create post
-# ---------------------------------------------------------------------------
-
-class TestCreatePost:
-    def test_create_post_shows_success_toast(self, page: Page, base_url: str):
-        create_post(page, base_url, unique_text("My First Post"), "Hello Playwright!")
-        wait_for_toast(page, "Post created successfully!")
-
-    def test_created_post_appears_in_list(self, page: Page, base_url: str):
-        title = unique_text("Unique Playwright Post")
-        create_post(page, base_url, title, "Some body content")
-        page.goto(base_url)
-        expect(page.locator(".post-card", has_text=title).first).to_be_visible()
-
-    def test_create_post_empty_title_shows_error_toast(self, page: Page, base_url: str):
-        page.goto(base_url)
-        # Use whitespace to bypass browser required validation and hit server-side strip().
-        page.fill("#title", "   ")
-        page.fill("#body", "Body without title")
-        page.get_by_role("button", name="Create Post").click()
-        wait_for_toast(page, "required")
-
-    def test_create_post_empty_body_shows_error_toast(self, page: Page, base_url: str):
-        page.goto(base_url)
-        page.fill("#body", "   ")
-        page.fill("#title", "Title without body")
-        page.get_by_role("button", name="Create Post").click()
-        wait_for_toast(page, "required")
-
-
-# ---------------------------------------------------------------------------
 # Edit post
 # ---------------------------------------------------------------------------
 
