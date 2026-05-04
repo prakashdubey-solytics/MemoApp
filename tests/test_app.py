@@ -47,6 +47,41 @@ class TestHomePage:
         expect(page.locator("#body")).to_be_visible()
         expect(page.get_by_role("button", name="Create Post")).to_be_visible()
 
+    def test_create_post_validation_and_success_toast(self, page: Page, base_url: str):
+        # Try to submit empty form
+        page.goto(base_url)
+        page.get_by_role("button", name="Create Post").click()
+        wait_for_toast(page, "required")
+        # Try to submit with empty title
+        page.fill("#body", "Body only")
+        page.get_by_role("button", name="Create Post").click()
+        wait_for_toast(page, "required")
+        # Try to submit with empty body
+        page.fill("#title", "Title only")
+        page.fill("#body", "")
+        page.get_by_role("button", name="Create Post").click()
+        wait_for_toast(page, "required")
+        # Submit valid post
+        title = unique_text("Valid Post")
+        body = "This is a valid post body"
+        page.fill("#title", title)
+        page.fill("#body", body)
+        page.get_by_role("button", name="Create Post").click()
+        wait_for_toast(page, "Post created successfully!")
+
+    def test_create_post_empty_title_shows_error(self, page: Page, base_url: str):
+        page.goto(base_url)
+        page.fill("#body", "Body without title")
+        page.get_by_role("button", name="Create Post").click()
+        wait_for_toast(page, "required")
+
+    def test_create_post_empty_body_shows_error(self, page: Page, base_url: str):
+        page.goto(base_url)
+        page.fill("#title", "Title without body")
+        page.fill("#body", "")
+        page.get_by_role("button", name="Create Post").click()
+        wait_for_toast(page, "required")
+
 
 # ---------------------------------------------------------------------------
 # Edit post
@@ -90,8 +125,8 @@ class TestEditPost:
         card = page.locator(".post-card", has_text=title).first
         expect(card).to_be_visible()
         card.get_by_role("link", name="Edit").click()
-        page.fill("#title", "   ")
-        page.fill("#body", "   ")
+        page.fill("#title", "   " )
+        page.fill("#body", "   " )
         page.get_by_role("button", name="Save Changes").click()
 
         wait_for_toast(page, "required")
