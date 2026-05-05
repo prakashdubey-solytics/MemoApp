@@ -21,16 +21,13 @@ def create_post(page: Page, base_url: str, title: str, body: str) -> None:
     page.fill("#body", body)
     page.get_by_role("button", name="Create Post").click()
 
-
 def wait_for_toast(page: Page, text: str) -> None:
     """Assert a toast containing *text* becomes visible."""
     toast = page.locator(".toast", has_text=text)
     expect(toast).to_be_visible(timeout=4000)
 
-
 def unique_text(prefix: str) -> str:
     return f"{prefix} {uuid4().hex[:8]}"
-
 
 # ---------------------------------------------------------------------------
 # Home page
@@ -47,6 +44,27 @@ class TestHomePage:
         expect(page.locator("#body")).to_be_visible()
         expect(page.get_by_role("button", name="Create Post")).to_be_visible()
 
+    def test_create_post_success(self, page: Page, base_url: str):
+        title = unique_text('New Post')
+        body = 'This is a test post.'
+        create_post(page, base_url, title, body)
+        wait_for_toast(page, 'Post created successfully!')
+        page.goto(base_url)
+        expect(page.locator('.post-card', has_text=title).first).to_be_visible()
+
+    def test_create_post_empty_title(self, page: Page, base_url: str):
+        page.goto(base_url)
+        page.fill('#title', '   ')
+        page.fill('#body', 'Body text')
+        page.get_by_role('button', name='Create Post').click()
+        wait_for_toast(page, 'required')
+
+    def test_create_post_empty_body(self, page: Page, base_url: str):
+        page.goto(base_url)
+        page.fill('#title', unique_text('Title'))
+        page.fill('#body', '   ')
+        page.get_by_role('button', name='Create Post').click()
+        wait_for_toast(page, 'required')
 
 # ---------------------------------------------------------------------------
 # Edit post
@@ -90,8 +108,8 @@ class TestEditPost:
         card = page.locator(".post-card", has_text=title).first
         expect(card).to_be_visible()
         card.get_by_role("link", name="Edit").click()
-        page.fill("#title", "   ")
-        page.fill("#body", "   ")
+        page.fill("#title", "   " )
+        page.fill("#body", "   " )
         page.get_by_role("button", name="Save Changes").click()
 
         wait_for_toast(page, "required")
@@ -107,7 +125,6 @@ class TestEditPost:
         card.get_by_role("link", name="Edit").click()
         expect(page.locator("#title")).to_have_value(title)
         expect(page.locator("#body")).to_have_value(body)
-
 
 # ---------------------------------------------------------------------------
 # Delete post
@@ -140,7 +157,6 @@ class TestDeletePost:
 
         expect(page.locator(".post-card", has_text=title)).to_have_count(0)
 
-
 # ---------------------------------------------------------------------------
 # Search
 # ---------------------------------------------------------------------------
@@ -166,7 +182,6 @@ class TestSearch:
         page.keyboard.press("Enter")
 
         expect(page.locator(".empty-state")).to_be_visible()
-
 
 # ---------------------------------------------------------------------------
 # Toast behaviour
